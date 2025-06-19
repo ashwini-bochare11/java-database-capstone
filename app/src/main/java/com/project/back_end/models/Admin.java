@@ -1,6 +1,55 @@
 package com.project.back_end.models;
 
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+@Entity
 public class Admin {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @NotNull
+    private String username;
+
+    @NotNull
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private String password;
+
+    // Default constructor (required by JPA)
+    public Admin() {
+    }
+
+    // Optional parameterized constructor
+    public Admin(String username, String password) {
+        this.username = username;
+        this.password = password;
+    }
+
+    // Getters and setters
+    public Long getId() {
+        return id;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+}
+//public class Admin {
 
 // @Entity annotation:
 //    - Marks the class as a JPA entity, which means it represents a table in the database.
@@ -34,4 +83,4 @@ public class Admin {
 // 5. Getters and Setters:
 //    - Standard getter and setter methods are provided for accessing and modifying the fields.
 
-}
+//}
