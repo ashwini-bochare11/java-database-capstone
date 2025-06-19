@@ -1,4 +1,5 @@
-As an Admin,
+## Admin User Stories
+
 User Story 1
 Title:
 As an Admin, I want to log into the portal with my username and password, so that I can manage the platform securely.
@@ -60,7 +61,8 @@ Notes:
 - Result should be exportable as CSV or viewable in dashboard analytics.
 
 
-As a Patient,
+## Patient User Stories 
+
 User Story 1
 Title:
 As a Patient, I want to view a list of doctors without logging in, so that I can explore options before registering.
@@ -135,7 +137,9 @@ Notes:
 
 
 
-As a Doctor,
+## Doctor User Stories 
+
+
 User Story 1
 Title:
 As a Doctor, I want to log into the portal to manage my appointments, so that I can access and update my schedule.
