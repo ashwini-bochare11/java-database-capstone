@@ -1,7 +1,30 @@
-
 package com.project.back_end.controllers;
 
+
+@RestController
+@RequestMapping("${api.path}admin")
 public class AdminController {
+
+    private final Service sharedService;
+
+    public AdminController(Service sharedService) {
+        this.sharedService = sharedService;
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<Map<String, Object>> adminLogin(@RequestBody Admin admin) {
+        Map<String, Object> response = sharedService.validateAdmin(admin);
+
+        if ("success".equals(response.get("status"))) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        }
+    }
+}
+
+
+//public class AdminController {
 
 // 1. Set Up the Controller Class:
 //    - Annotate the class with `@RestController` to indicate that it's a REST controller, used to handle web requests and return JSON responses.
@@ -21,7 +44,5 @@ public class AdminController {
 //    - Delegates authentication logic to the `validateAdmin` method in the service layer.
 //    - Returns a `ResponseEntity` with a `Map` containing login status or messages.
 
-
-
-}
+//}
 
