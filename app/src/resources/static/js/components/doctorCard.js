@@ -1,3 +1,85 @@
+import { showBookingOverlay } from './loggedPatient.js';
+import { deleteDoctor } from './doctorServices.js';
+import { getPatientDetails } from './patientServices.js';
+
+export function createDoctorCard(doctor) {
+  const card = document.createElement('div');
+  card.className = 'doctor-card';
+
+  const role = localStorage.getItem('role');
+
+  // Doctor Info
+  const info = document.createElement('div');
+  info.className = 'doctor-info';
+
+  info.innerHTML = `
+    <h3>${doctor.name}</h3>
+    <p><strong>Specialty:</strong> ${doctor.specialty}</p>
+    <p><strong>Email:</strong> ${doctor.email}</p>
+    <p><strong>Available Times:</strong> ${doctor.availableTimes.join(', ')}</p>
+  `;
+
+  // Action Buttons
+  const actions = document.createElement('div');
+  actions.className = 'doctor-actions';
+
+  // === ADMIN ===
+  if (role === 'admin') {
+    const delBtn = document.createElement('button');
+    delBtn.textContent = 'Delete';
+    delBtn.className = 'delete-btn';
+
+    delBtn.addEventListener('click', async () => {
+      const token = localStorage.getItem('token');
+      if (confirm(`Delete Dr. ${doctor.name}?`)) {
+        const res = await deleteDoctor(doctor.id, token);
+        if (res.status === 'success') {
+          card.remove();
+          alert('Doctor deleted.');
+        } else {
+          alert('Error deleting doctor.');
+        }
+      }
+    });
+
+    actions.appendChild(delBtn);
+  }
+
+  // === PATIENT NOT LOGGED IN ===
+  if (role === null || !localStorage.getItem('token')) {
+    const bookBtn = document.createElement('button');
+    bookBtn.textContent = 'Book Now';
+    bookBtn.addEventListener('click', () => alert('Please log in as a patient to book.'));
+    actions.appendChild(bookBtn);
+  }
+
+  // === PATIENT LOGGED IN ===
+  if (role === 'patient' && localStorage.getItem('token')) {
+    const bookBtn = document.createElement('button');
+    bookBtn.textContent = 'Book Now';
+
+    bookBtn.addEventListener('click', async () => {
+      const token = localStorage.getItem('token');
+      const patient = await getPatientDetails(token);
+
+      if (patient) {
+        showBookingOverlay({ doctor, patient });
+      } else {
+        alert('Session expired. Please log in again.');
+        window.location.href = '/login';
+      }
+    });
+
+    actions.appendChild(bookBtn);
+  }
+
+  // Assemble the card
+  card.appendChild(info);
+  card.appendChild(actions);
+
+  return card;
+}
+
 /*
 Import the overlay function for booking appointments from loggedPatient.js
 
