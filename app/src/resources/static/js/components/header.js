@@ -1,3 +1,125 @@
+
+// ====================
+// Dynamic Header Renderer
+// ====================
+
+// 1. Define the renderHeader function
+function renderHeader() {
+  // 2. Select the Header Div
+  const headerDiv = document.getElementById("header");
+  if (!headerDiv) return;
+
+  // 3. Check if the Current Page is the Root Page
+  if (window.location.pathname.endsWith("/")) {
+    localStorage.removeItem("userRole");
+    headerDiv.innerHTML = `
+      <header class="header">
+        <div class="logo-section">
+          <img src="../assets/images/logo/logo.png" alt="Hospital CRM Logo" class="logo-img">
+          <span class="logo-title">Hospital CMS</span>
+        </div>
+      </header>`;
+    return;
+  }
+
+  // 4. Retrieve role and token from localStorage
+  const role = localStorage.getItem("userRole");
+  const token = localStorage.getItem("token");
+
+  // 5. Initialize Header Content
+  let headerContent = `
+    <header class="header">
+      <div class="logo-section">
+        <img src="../assets/images/logo/logo.png" alt="Hospital CRM Logo" class="logo-img">
+        <span class="logo-title">Hospital CMS</span>
+      </div>
+      <nav>`;
+
+  // 6. Handle Session Expiry or Invalid Login
+  if ((role === "loggedPatient" || role === "admin" || role === "doctor") && !token) {
+    localStorage.removeItem("userRole");
+    alert("Session expired or invalid login. Please log in again.");
+    window.location.href = "/";
+    return;
+  }
+
+  // 7. Add Role-Specific Header Content
+  if (role === "admin") {
+    headerContent += `
+      <button id="addDocBtn" class="adminBtn">Add Doctor</button>
+      <a href="#" id="logoutBtn">Logout</a>`;
+  } else if (role === "doctor") {
+    headerContent += `
+      <button class="adminBtn" onclick="selectRole('doctor')">Home</button>
+      <a href="#" id="logoutBtn">Logout</a>`;
+  } else if (role === "patient") {
+    headerContent += `
+      <button id="patientLogin" class="adminBtn">Login</button>
+      <button id="patientSignup" class="adminBtn">Sign Up</button>`;
+  } else if (role === "loggedPatient") {
+    headerContent += `
+      <button id="home" class="adminBtn" onclick="window.location.href='/pages/loggedPatientDashboard.html'">Home</button>
+      <button id="patientAppointments" class="adminBtn" onclick="window.location.href='/pages/patientAppointments.html'">Appointments</button>
+      <a href="#" id="logoutPatientBtn">Logout</a>`;
+  }
+
+  // 9. Close the Header Section
+  headerContent += `</nav></header>`;
+
+  // 10. Render the Header Content
+  headerDiv.innerHTML = headerContent;
+
+  // 11. Attach Event Listeners to Header Buttons
+  attachHeaderButtonListeners();
+}
+
+// 13. Attach event listeners to dynamically rendered header buttons
+function attachHeaderButtonListeners() {
+  const loginBtn = document.getElementById("patientLogin");
+  const signupBtn = document.getElementById("patientSignup");
+  const addDocBtn = document.getElementById("addDocBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const logoutPatientBtn = document.getElementById("logoutPatientBtn");
+
+  if (loginBtn) {
+    loginBtn.addEventListener("click", () => openModal("patientLoginModal"));
+  }
+
+  if (signupBtn) {
+    signupBtn.addEventListener("click", () => openModal("patientSignupModal"));
+  }
+
+  if (addDocBtn) {
+    addDocBtn.addEventListener("click", () => openModal("addDoctorModal"));
+  }
+
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", logout);
+  }
+
+  if (logoutPatientBtn) {
+    logoutPatientBtn.addEventListener("click", logoutPatient);
+  }
+}
+
+// 14. Log out admin or doctor and redirect to root page
+function logout() {
+  localStorage.removeItem("userRole");
+  localStorage.removeItem("token");
+  window.location.href = "/";
+}
+
+// 15. Log out patient and redirect to login page
+function logoutPatient() {
+  localStorage.removeItem("userRole");
+  localStorage.removeItem("token");
+  window.location.href = "/pages/patientLogin.html";
+}
+
+// 16. Render header on DOM load
+document.addEventListener("DOMContentLoaded", renderHeader);
+
+
 /*
   Step-by-Step Explanation of Header Section Rendering
 
