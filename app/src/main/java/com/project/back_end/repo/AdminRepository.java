@@ -1,6 +1,16 @@
 package com.project.back_end.repo;
 
-public interface AdminRepository {
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+import com.clinic.model.Admin;
+
+@Repository
+public interface AdminRepository extends JpaRepository<Admin, Long> {
+    
+    // Custom query method to find admin by username
+    Admin findByUsername(String username);
+}
+//public interface AdminRepository {
 
     // 1. Extend JpaRepository:
 //    - The repository extends JpaRepository<Admin, Long>, which gives it basic CRUD functionality.
@@ -27,4 +37,4 @@ public interface AdminRepository {
 // Example: @Repository
 //          public interface AdminRepository extends JpaRepository<Admin, Long> { ... }
 
-}
+//}
