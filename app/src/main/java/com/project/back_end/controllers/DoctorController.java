@@ -1,7 +1,102 @@
 package com.project.back_end.controllers;
 
-
+@RestController
+@RequestMapping("${api.path}doctor")
 public class DoctorController {
+
+    @Autowired
+    private DoctorService doctorService;
+
+    @Autowired
+    private Service sharedService;
+
+    // 3. Get availability
+    @GetMapping("/availability/{user}/{doctorId}/{date}/{token}")
+    public ResponseEntity<?> getDoctorAvailability(
+            @PathVariable String user,
+            @PathVariable Long doctorId,
+            @PathVariable String date,
+            @PathVariable String token) {
+
+        if (!sharedService.isValidToken(user, token)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token.");
+        }
+
+        boolean available = doctorService.isDoctorAvailable(doctorId, date);
+        return ResponseEntity.ok(Map.of("available", available));
+    }
+
+    // 4. Get all doctors
+    @GetMapping
+    public ResponseEntity<?> getDoctors() {
+        return ResponseEntity.ok(Map.of("doctors", doctorService.getAllDoctors()));
+    }
+
+    // 5. Save new doctor
+    @PostMapping("/register/{token}")
+    public ResponseEntity<?> saveDoctor(@Valid @RequestBody Doctor doctor, @PathVariable String token) {
+        if (!sharedService.isAdminToken(token)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Unauthorized access.");
+        }
+
+        if (doctorService.exists(doctor)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Doctor already exists.");
+        }
+
+        doctorService.saveDoctor(doctor);
+        return ResponseEntity.status(HttpStatus.CREATED).body("Doctor registered.");
+    }
+
+    // 6. Doctor login
+    @PostMapping("/login")
+    public ResponseEntity<?> doctorLogin(@Valid @RequestBody Login login) {
+        return ResponseEntity.ok(doctorService.authenticate(login));
+    }
+
+    // 7. Update doctor
+    @PutMapping("/update/{token}")
+    public ResponseEntity<?> updateDoctor(@Valid @RequestBody Doctor doctor, @PathVariable String token) {
+        if (!sharedService.isAdminToken(token)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Unauthorized.");
+        }
+
+        if (!doctorService.existsById(doctor.getId())) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Doctor not found.");
+        }
+
+        doctorService.updateDoctor(doctor);
+        return ResponseEntity.ok("Doctor updated.");
+    }
+
+    // 8. Delete doctor
+    @DeleteMapping("/delete/{id}/{token}")
+    public ResponseEntity<?> deleteDoctor(@PathVariable Long id, @PathVariable String token) {
+        if (!sharedService.isAdminToken(token)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Unauthorized.");
+        }
+
+        if (!doctorService.existsById(id)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Doctor not found.");
+        }
+
+        doctorService.deleteDoctor(id);
+        return ResponseEntity.ok("Doctor deleted.");
+    }
+
+    // 9. Filter doctors
+    @GetMapping("/filter/{name}/{time}/{specialty}")
+    public ResponseEntity<?> filter(
+            @PathVariable String name,
+            @PathVariable String time,
+            @PathVariable String specialty) {
+
+        List<Doctor> filtered = sharedService.filterDoctors(name, time, specialty);
+        return ResponseEntity.ok(filtered);
+    }
+}
+
+
+//public class DoctorController {
 
 // 1. Set Up the Controller Class:
 //    - Annotate the class with `@RestController` to define it as a REST controller that serves JSON responses.
@@ -58,4 +153,4 @@ public class DoctorController {
 //    - Calls the shared `Service` to perform filtering logic and returns matching doctors in the response.
 
 
-}
+//}
