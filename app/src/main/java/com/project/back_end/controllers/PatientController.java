@@ -1,6 +1,89 @@
 package com.project.back_end.controllers;
 
+import com.project.back_end.DTO.Login;
+import com.project.back_end.models.Patient;
+import com.project.back_end.DTO.AppointmentDTO;
+import com.project.back_end.services.PatientService;
+import com.project.back_end.services.Service;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController // 1. Define as REST API controller
+@RequestMapping("/patient")
 public class PatientController {
+
+    // 2. Dependencies
+    private final PatientService patientService;
+    private final Service sharedService;
+
+    @Autowired
+    public PatientController(PatientService patientService, Service sharedService) {
+        this.patientService = patientService;
+        this.sharedService = sharedService;
+    }
+
+    // 3. Get patient profile by token
+    @GetMapping("/profile/{token}")
+    public ResponseEntity<?> getPatient(@PathVariable String token) {
+        ResponseEntity<String> validation = sharedService.validateToken(token, "patient");
+        if (!validation.getStatusCode().is2xxSuccessful()) return validation;
+
+        Patient patient = patientService.getPatientDetails(token);
+        return (patient != null)
+                ? ResponseEntity.ok(patient)
+                : ResponseEntity.status(404).body("Patient not found.");
+    }
+
+    // 4. Register a new patient
+    @PostMapping("/register")
+    public ResponseEntity<String> createPatient(@RequestBody Patient patient) {
+        boolean isUnique = sharedService.validatePatient(patient.getEmail(), patient.getPhone());
+        if (!isUnique) {
+            return ResponseEntity.status(409).body("Patient already exists.");
+        }
+
+        int result = patientService.createPatient(patient);
+        return (result == 1)
+                ? ResponseEntity.ok("Patient registered successfully.")
+                : ResponseEntity.status(500).body("Failed to register patient.");
+    }
+
+    // 5. Login
+    @PostMapping("/login")
+    public ResponseEntity<String> login(@RequestBody Login login) {
+        return sharedService.validatePatientLogin(login.getEmail(), login.getPassword());
+    }
+
+    // 6. Get all appointments for a patient (admin or patient access)
+    @GetMapping("/appointments/{id}/{role}/{token}")
+    public ResponseEntity<?> getPatientAppointment(@PathVariable Long id,
+                                                   @PathVariable String role,
+                                                   @PathVariable String token) {
+        ResponseEntity<String> validation = sharedService.validateToken(token, role);
+        if (!validation.getStatusCode().is2xxSuccessful()) return validation;
+
+        List<AppointmentDTO> appointments = patientService.getPatientAppointment(id);
+        return ResponseEntity.ok(appointments);
+    }
+
+    // 7. Filter appointments using optional doctor name and condition
+    @GetMapping("/appointments/filter")
+    public ResponseEntity<?> filterPatientAppointment(@RequestParam(required = false) String condition,
+                                                      @RequestParam(required = false) String name,
+                                                      @RequestParam String token) {
+        ResponseEntity<String> validation = sharedService.validateToken(token, "patient");
+        if (!validation.getStatusCode().is2xxSuccessful()) return validation;
+
+        List<AppointmentDTO> filtered = sharedService.filterPatient(token, condition, name);
+        return ResponseEntity.ok(filtered);
+    }
+}
+
+
+//public class PatientController {
 
 // 1. Set Up the Controller Class:
 //    - Annotate the class with `@RestController` to define it as a REST API controller for patient-related operations.
@@ -47,6 +130,6 @@ public class PatientController {
 
 
 
-}
+//}
 
 
