@@ -1,11 +1,8 @@
 package com.project.back_end.services;
 
-
-package com.hospitalcms.util;
-
-import com.hospitalcms.repository.AdminRepository;
-import com.hospitalcms.repository.DoctorRepository;
-import com.hospitalcms.repository.PatientRepository;
+import com.project.back_end.repo.AdminRepository;
+import com.project.back_end.repo.DoctorRepository;
+import com.project.back_end.repo.PatientRepository;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
