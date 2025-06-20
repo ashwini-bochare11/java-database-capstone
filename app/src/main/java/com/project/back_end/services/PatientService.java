@@ -1,6 +1,141 @@
 package com.project.back_end.services;
 
+package com.hospitalcms.service;
+
+import com.hospitalcms.dto.AppointmentDTO;
+import com.hospitalcms.entity.Appointment;
+import com.hospitalcms.entity.Patient;
+import com.hospitalcms.repository.AppointmentRepository;
+import com.hospitalcms.repository.PatientRepository;
+import com.hospitalcms.util.TokenService;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+@Service // 1. Service annotation for Spring context
 public class PatientService {
+
+    private final PatientRepository patientRepository;
+    private final AppointmentRepository appointmentRepository;
+    private final TokenService tokenService;
+
+    // 2. Constructor injection
+    public PatientService(PatientRepository patientRepository,
+                          AppointmentRepository appointmentRepository,
+                          TokenService tokenService) {
+        this.patientRepository = patientRepository;
+        this.appointmentRepository = appointmentRepository;
+        this.tokenService = tokenService;
+    }
+
+    // 3. Create a new patient
+    public int createPatient(Patient patient) {
+        try {
+            patientRepository.save(patient);
+            return 1;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0;
+        }
+    }
+
+    // 4. Get appointments for a patient by ID
+    @Transactional(readOnly = true)
+    public List<AppointmentDTO> getPatientAppointment(Long patientId) {
+        try {
+            List<Appointment> appointments = appointmentRepository.findByPatientId(patientId);
+            List<AppointmentDTO> dtos = new ArrayList<>();
+            for (Appointment a : appointments) {
+                dtos.add(convertToDTO(a));
+            }
+            return dtos;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return List.of();
+        }
+    }
+
+    // 5. Filter appointments by condition (past/future)
+    public List<AppointmentDTO> filterByCondition(Long patientId, String condition) {
+        int status;
+        if ("past".equalsIgnoreCase(condition)) {
+            status = 1;
+        } else if ("future".equalsIgnoreCase(condition)) {
+            status = 0;
+        } else {
+            throw new IllegalArgumentException("Invalid condition: " + condition);
+        }
+
+        List<Appointment> appointments = appointmentRepository.findByPatient_IdAndStatusOrderByAppointmentTimeAsc(patientId, status);
+        List<AppointmentDTO> dtos = new ArrayList<>();
+        for (Appointment a : appointments) {
+            dtos.add(convertToDTO(a));
+        }
+        return dtos;
+    }
+
+    // 6. Filter appointments by doctor name
+    public List<AppointmentDTO> filterByDoctor(String doctorName, Long patientId) {
+        List<Appointment> appointments = appointmentRepository.filterByDoctorNameAndPatientId(doctorName, patientId);
+        List<AppointmentDTO> dtos = new ArrayList<>();
+        for (Appointment a : appointments) {
+            dtos.add(convertToDTO(a));
+        }
+        return dtos;
+    }
+
+    // 7. Filter appointments by doctor name and condition
+    public List<AppointmentDTO> filterByDoctorAndCondition(String doctorName, Long patientId, String condition) {
+        int status;
+        if ("past".equalsIgnoreCase(condition)) {
+            status = 1;
+        } else if ("future".equalsIgnoreCase(condition)) {
+            status = 0;
+        } else {
+            throw new IllegalArgumentException("Invalid condition: " + condition);
+        }
+
+        List<Appointment> appointments = appointmentRepository.filterByDoctorNameAndPatientIdAndStatus(doctorName, patientId, status);
+        List<AppointmentDTO> dtos = new ArrayList<>();
+        for (Appointment a : appointments) {
+            dtos.add(convertToDTO(a));
+        }
+        return dtos;
+    }
+
+    // 8. Get patient details by token
+    public Patient getPatientDetails(String token) {
+        try {
+            String email = tokenService.extractEmail(token);
+            return patientRepository.findByEmail(email);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    // 10. Utility: Convert Appointment to DTO
+    private AppointmentDTO convertToDTO(Appointment a) {
+        return new AppointmentDTO(
+            a.getId(),
+            a.getDoctor().getId(),
+            a.getDoctor().getName(),
+            a.getPatient().getId(),
+            a.getPatient().getName(),
+            a.getPatient().getEmail(),
+            a.getPatient().getPhone(),
+            a.getPatient().getAddress(),
+            a.getAppointmentTime(),
+            a.getStatus()
+        );
+    }
+}
+
+//public class PatientService {
 // 1. **Add @Service Annotation**:
 //    - The `@Service` annotation is used to mark this class as a Spring service component. 
 //    - It will be managed by Spring's container and used for business logic related to patients and appointments.
@@ -53,6 +188,4 @@ public class PatientService {
 //    - The service uses `AppointmentDTO` to transfer appointment-related data between layers. This ensures that sensitive or unnecessary data (e.g., password or private patient information) is not exposed in the response.
 //    - Instruction: Ensure that DTOs are used appropriately to limit the exposure of internal data and only send the relevant fields to the client.
 
-
-
-}
+//}
