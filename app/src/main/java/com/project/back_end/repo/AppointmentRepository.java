@@ -1,9 +1,8 @@
 package com.project.back_end.repo;
 
 
-package com.hospitalcms.repository;
 
-import com.hospitalcms.entity.Appointment;
+import com.project.back_end.models.Appointment;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;

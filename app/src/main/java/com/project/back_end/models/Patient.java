@@ -1,10 +1,12 @@
 package com.project.back_end.models;
 
+import jakarta.persistence.Table; 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Entity
+@Table
 public class Patient {
 
     @Id
