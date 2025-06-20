@@ -1,6 +1,39 @@
 package com.project.back_end.mvc;
 
+package com.hospitalcms.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.*;
+import com.hospitalcms.service.CommonService;
+
+@Controller
 public class DashboardController {
+
+    @Autowired
+    private CommonService commonService;
+
+    // 3. Admin Dashboard Route
+    @GetMapping("/adminDashboard/{token}")
+    public String adminDashboard(@PathVariable String token) {
+        String validationMessage = commonService.validateToken(token, "admin");
+        if (validationMessage == null || validationMessage.isEmpty()) {
+            return "admin/adminDashboard";
+        }
+        return "redirect:/";
+    }
+
+    // 4. Doctor Dashboard Route
+    @GetMapping("/doctorDashboard/{token}")
+    public String doctorDashboard(@PathVariable String token) {
+        String validationMessage = commonService.validateToken(token, "doctor");
+        if (validationMessage == null || validationMessage.isEmpty()) {
+            return "doctor/doctorDashboard";
+        }
+        return "redirect:/";
+    }
+}
+//public class DashboardController {
 
 // 1. Set Up the MVC Controller Class:
 //    - Annotate the class with `@Controller` to indicate that it serves as an MVC controller returning view names (not JSON).
@@ -27,4 +60,4 @@ public class DashboardController {
 //    - If the token is invalid, redirects to the root URL.
 
 
-}
+//}
