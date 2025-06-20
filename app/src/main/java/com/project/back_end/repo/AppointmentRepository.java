@@ -1,6 +1,57 @@
 package com.project.back_end.repo;
 
-public interface AppointmentRepository  {
+
+package com.hospitalcms.repository;
+
+import com.hospitalcms.entity.Appointment;
+import org.springframework.data.jpa.repository.*;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Repository
+public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
+
+    // Fetch appointments for a doctor within a time range
+    List<Appointment> findByDoctorIdAndAppointmentTimeBetween(
+        Long doctorId, LocalDateTime start, LocalDateTime end
+    );
+
+    // Search appointments by doctorId and partial patient name (case-insensitive)
+    List<Appointment> findByDoctorIdAndPatient_NameContainingIgnoreCaseAndAppointmentTimeBetween(
+        Long doctorId, String patientName, LocalDateTime start, LocalDateTime end
+    );
+
+    // Delete all appointments for a given doctor
+    @Modifying
+    @Transactional
+    void deleteAllByDoctorId(Long doctorId);
+
+    // Get all appointments for a patient
+    List<Appointment> findByPatientId(Long patientId);
+
+    // Get appointments for a patient with a specific status, ordered by time
+    List<Appointment> findByPatient_IdAndStatusOrderByAppointmentTimeAsc(
+        Long patientId, int status
+    );
+
+    // Custom query: filter by doctor name and patient ID
+    @Query("SELECT a FROM Appointment a WHERE LOWER(a.doctor.name) LIKE LOWER(CONCAT('%', :doctorName, '%')) AND a.patient.id = :patientId")
+    List<Appointment> filterByDoctorNameAndPatientId(String doctorName, Long patientId);
+
+    // Custom query: filter by doctor name, patient ID, and status
+    @Query("SELECT a FROM Appointment a WHERE LOWER(a.doctor.name) LIKE LOWER(CONCAT('%', :doctorName, '%')) AND a.patient.id = :patientId AND a.status = :status")
+    List<Appointment> filterByDoctorNameAndPatientIdAndStatus(String doctorName, Long patientId, int status);
+
+    // Update appointment status
+    @Modifying
+    @Transactional
+    @Query("UPDATE Appointment a SET a.status = :status WHERE a.id = :id")
+    void updateStatus(int status, long id);
+}
+//public interface AppointmentRepository  {
 
    // 1. Extend JpaRepository:
 //    - The repository extends JpaRepository<Appointment, Long>, which gives it basic CRUD functionality.
@@ -63,4 +114,4 @@ public interface AppointmentRepository  {
 //    - The @Repository annotation marks this interface as a Spring Data JPA repository.
 //    - Spring Data JPA automatically implements this repository, providing the necessary CRUD functionality and custom queries defined in the interface.
 
-}
+//}
