@@ -1,13 +1,11 @@
 package com.project.back_end.services;
 
-package com.hospitalcms.service;
-
-import com.hospitalcms.dto.AppointmentDTO;
-import com.hospitalcms.entity.Appointment;
-import com.hospitalcms.entity.Patient;
-import com.hospitalcms.repository.AppointmentRepository;
-import com.hospitalcms.repository.PatientRepository;
-import com.hospitalcms.util.TokenService;
+import com.project.back_end.DTO.AppointmentDTO;
+import com.project.back_end.models.Appointment;
+import com.project.back_end.models.Patient;
+import com.project.back_end.repo.AppointmentRepository;
+import com.project.back_end.repo.PatientRepository;
+import com.project.back_end.service.TokenService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
