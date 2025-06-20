@@ -1,6 +1,89 @@
 package com.project.back_end.services;
 
+
+package com.hospitalcms.util;
+
+import com.hospitalcms.repository.AdminRepository;
+import com.hospitalcms.repository.DoctorRepository;
+import com.hospitalcms.repository.PatientRepository;
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+
+@Component // 1. Spring-managed component
 public class TokenService {
+
+    private final AdminRepository adminRepository;
+    private final DoctorRepository doctorRepository;
+    private final PatientRepository patientRepository;
+
+    // JWT Secret Key (injected from application.properties or environment variable)
+    @Value("${jwt.secret}")
+    private String jwtSecret;
+
+    // 2. Constructor injection for repositories
+    public TokenService(AdminRepository adminRepository,
+                        DoctorRepository doctorRepository,
+                        PatientRepository patientRepository) {
+        this.adminRepository = adminRepository;
+        this.doctorRepository = doctorRepository;
+        this.patientRepository = patientRepository;
+    }
+
+    // 3. Generate HMAC signing key
+    private SecretKey getSigningKey() {
+        return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+    }
+
+    // 4. Generate JWT token with email as subject
+    public String generateToken(String email) {
+        Date now = new Date();
+        Date expiry = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+        return Jwts.builder()
+                .setSubject(email)
+                .setIssuedAt(now)
+                .setExpiration(expiry)
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    // 5. Extract email (subject) from token
+    public String extractEmail(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .getSubject();
+    }
+
+    // 6. Validate token for specific role
+    public boolean validateToken(String token, String role) {
+        try {
+            String email = extractEmail(token);
+            switch (role.toLowerCase()) {
+                case "admin":
+                    return adminRepository.findByEmail(email) != null;
+                case "doctor":
+                    return doctorRepository.findByEmail(email) != null;
+                case "patient":
+                    return patientRepository.findByEmail(email) != null;
+                default:
+                    return false;
+            }
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
+    }
+}
+
+//public class TokenService {
 // 1. **@Component Annotation**
 // The @Component annotation marks this class as a Spring component, meaning Spring will manage it as a bean within its application context.
 // This allows the class to be injected into other Spring-managed components (like services or controllers) where it's needed.
@@ -39,5 +122,4 @@ public class TokenService {
 // - The method gracefully handles any errors by returning false if the token is invalid or an exception occurs.
 // This ensures secure access control based on the user's role and their existence in the system.
 
-
-}
+//}
