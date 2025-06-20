@@ -1,6 +1,71 @@
 package com.project.back_end.controllers;
 
+import com.project.back_end.models.Prescription;
+import com.project.back_end.services.AppointmentService;
+import com.project.back_end.services.PrescriptionService;
+import com.project.back_end.services.Service;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController // 1. REST API controller
+@RequestMapping("${api.path}prescription") // base path defined via application properties
 public class PrescriptionController {
+
+    // 2. Inject required services
+    private final PrescriptionService prescriptionService;
+    private final AppointmentService appointmentService;
+    private final Service sharedService;
+
+    @Autowired
+    public PrescriptionController(PrescriptionService prescriptionService,
+                                  AppointmentService appointmentService,
+                                  Service sharedService) {
+        this.prescriptionService = prescriptionService;
+        this.appointmentService = appointmentService;
+        this.sharedService = sharedService;
+    }
+
+    // 3. Save a new prescription
+    @PostMapping("/save/{token}")
+    public ResponseEntity<String> savePrescription(@RequestBody Prescription prescription,
+                                                   @PathVariable String token) {
+        ResponseEntity<String> validation = sharedService.validateToken(token, "doctor");
+        if (!validation.getStatusCode().is2xxSuccessful()) return validation;
+
+        try {
+            Long appointmentId = prescription.getAppointmentId();
+            appointmentService.changeStatus(appointmentId, 1); // Mark as completed (e.g., status = 1)
+            prescriptionService.savePrescription(prescription);
+            return ResponseEntity.ok("Prescription saved and appointment marked as completed.");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error saving prescription.");
+        }
+    }
+
+    // 4. Retrieve prescription by appointment ID
+    @GetMapping("/{appointmentId}/{token}")
+    public ResponseEntity<?> getPrescription(@PathVariable Long appointmentId,
+                                             @PathVariable String token) {
+        ResponseEntity<String> validation = sharedService.validateToken(token, "doctor");
+        if (!validation.getStatusCode().is2xxSuccessful()) return validation;
+
+        try {
+            List<Prescription> prescriptions = prescriptionService.getByAppointmentId(appointmentId);
+            return prescriptions.isEmpty()
+                    ? ResponseEntity.status(404).body("No prescription found for this appointment.")
+                    : ResponseEntity.ok(prescriptions);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Failed to fetch prescription data.");
+        }
+    }
+}
+
+
+
+//public class PrescriptionController {
     
 // 1. Set Up the Controller Class:
 //    - Annotate the class with `@RestController` to define it as a REST API controller.
@@ -30,4 +95,4 @@ public class PrescriptionController {
 //    - Returns the prescription details or an appropriate error message if validation fails.
 
 
-}
+//}
