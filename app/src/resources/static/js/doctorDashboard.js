@@ -1,3 +1,79 @@
+// doctorDashboard.js
+
+import { getAllAppointments } from "./services/appointmentService.js";
+import { createPatientRow } from "./components/patientRow.js";
+
+let selectedDate = new Date().toISOString().split("T")[0];
+let token = localStorage.getItem("token");
+let patientName = null;
+const tableBody = document.getElementById("patientTableBody");
+
+// Setup listeners and initial rendering
+document.addEventListener("DOMContentLoaded", () => {
+  renderContent();
+  attachUIListeners();
+  loadAppointments();
+});
+
+// Search bar filtering
+function attachUIListeners() {
+  const searchBar = document.getElementById("searchBar");
+  const todayBtn = document.getElementById("todayButton");
+  const datePicker = document.getElementById("datePicker");
+
+  if (searchBar) {
+    searchBar.addEventListener("input", () => {
+      const input = searchBar.value.trim();
+      patientName = input !== "" ? input : null;
+      loadAppointments();
+    });
+  }
+
+  if (todayBtn) {
+    todayBtn.addEventListener("click", () => {
+      selectedDate = new Date().toISOString().split("T")[0];
+      if (datePicker) datePicker.value = selectedDate;
+      loadAppointments();
+    });
+  }
+
+  if (datePicker) {
+    datePicker.addEventListener("change", (e) => {
+      selectedDate = e.target.value;
+      loadAppointments();
+    });
+  }
+}
+
+// Load appointments with filters
+async function loadAppointments() {
+  try {
+    const appointments = await getAllAppointments(selectedDate, patientName, token);
+    tableBody.innerHTML = "";
+
+    if (!appointments || appointments.length === 0) {
+      tableBody.innerHTML = `<tr><td colspan="5" class="noPatientRecord">No Appointments found for today.</td></tr>`;
+      return;
+    }
+
+    appointments.forEach((appt) => {
+      const patient = {
+        id: appt.id,
+        name: appt.name,
+        phone: appt.phone,
+        email: appt.email
+      };
+      const row = createPatientRow(patient);
+      tableBody.appendChild(row);
+    });
+  } catch (error) {
+    console.error("Error loading appointments:", error);
+    tableBody.innerHTML = `<tr><td colspan="5" class="noPatientRecord">Error loading appointments. Try again later.</td></tr>`;
+  }
+}
+
+
+
 /*
   Import getAllAppointments to fetch appointments from the backend
   Import createPatientRow to generate a table row for each patient appointment
