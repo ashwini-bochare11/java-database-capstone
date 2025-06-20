@@ -1,6 +1,141 @@
 package com.project.back_end.services;
 
+import com.project.back_end.models.Admin;
+import com.project.back_end.models.Doctor;
+import com.project.back_end.models.Patient;
+import com.project.back_end.models.AvailableTime;
+import com.project.back_end.repo.*;
+import com.project.back_end.TokenService;
+import com.project.back_end.DTO.AppointmentDTO;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.List;
+import java.util.Optional;
+
+@Service // 1. Mark this class as a Spring-managed service
 public class Service {
+
+    private final AdminRepository adminRepo;
+    private final DoctorRepository doctorRepo;
+    private final PatientRepository patientRepo;
+    private final TokenService tokenService;
+    private final PatientService patientService;
+
+    // 2. Constructor Injection
+    public Service(AdminRepository adminRepo,
+                   DoctorRepository doctorRepo,
+                   PatientRepository patientRepo,
+                   TokenService tokenService,
+                   PatientService patientService) {
+        this.adminRepo = adminRepo;
+        this.doctorRepo = doctorRepo;
+        this.patientRepo = patientRepo;
+        this.tokenService = tokenService;
+        this.patientService = patientService;
+    }
+
+    // 3. Validate token for any user role
+    public ResponseEntity<String> validateToken(String token, String role) {
+        if (tokenService.validateToken(token, role)) {
+            return ResponseEntity.ok("Token is valid");
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired token");
+        }
+    }
+
+    // 4. Validate Admin login
+    public ResponseEntity<String> validateAdmin(String username, String password) {
+        try {
+            Admin admin = adminRepo.findByUsername(username);
+            if (admin == null || !admin.getPassword().equals(password)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
+            }
+            String token = tokenService.generateToken(username);
+            return ResponseEntity.ok(token);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Login failed");
+        }
+    }
+
+    // 5. Filter doctors
+    public List<Doctor> filterDoctor(String name, String time, String specialty) {
+        if (name != null && time != null && specialty != null) {
+            return doctorRepo.findByNameContainingIgnoreCaseAndSpecialtyIgnoreCaseAndAvailableTimes_StartTime(
+                    name, specialty, LocalTime.parse(time));
+        } else if (name != null && specialty != null) {
+            return doctorRepo.findByNameContainingIgnoreCaseAndSpecialtyIgnoreCase(name, specialty);
+        } else if (time != null && specialty != null) {
+            return doctorRepo.findByAvailableTimes_StartTimeAndSpecialtyIgnoreCase(
+                    LocalTime.parse(time), specialty);
+        } else if (specialty != null) {
+            return doctorRepo.findBySpecialtyIgnoreCase(specialty);
+        } else {
+            return doctorRepo.findAll();
+        }
+    }
+
+    // 6. Validate appointment time
+    public int validateAppointment(Long doctorId, LocalDate date, String startTime) {
+        Optional<Doctor> optional = doctorRepo.findById(doctorId);
+        if (optional.isEmpty()) {
+            return -1;
+        }
+        Doctor doctor = optional.get();
+        LocalTime requestedTime = LocalTime.parse(startTime);
+        List<AvailableTime> timeSlots = doctor.getAvailableTimesForDate(date);
+
+        for (AvailableTime slot : timeSlots) {
+            if (slot.getStartTime().equals(requestedTime)) {
+                return 1; // Time is available
+            }
+        }
+        return 0; // Time not found
+    }
+
+    // 7. Validate uniqueness of patient
+    public boolean validatePatient(String email, String phone) {
+        return patientRepo.findByEmailOrPhone(email, phone) == null;
+    }
+
+    // 8. Validate patient login
+    public ResponseEntity<String> validatePatientLogin(String email, String password) {
+        try {
+            Patient patient = patientRepo.findByEmail(email);
+            if (patient == null || !patient.getPassword().equals(password)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
+            }
+            String token = tokenService.generateToken(email);
+            return ResponseEntity.ok(token);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Login failed");
+        }
+    }
+
+    // 9. Filter patient appointments based on condition and/or doctor
+    public List<AppointmentDTO> filterPatient(String token, String condition, String doctorName) {
+        Patient patient = patientService.getPatientDetails(token);
+        if (patient == null) {
+            return List.of(); // Or throw an exception if preferred
+        }
+        Long patientId = patient.getId();
+
+        if (condition != null && doctorName != null) {
+            return patientService.filterByDoctorAndCondition(doctorName, patientId, condition);
+        } else if (condition != null) {
+            return patientService.filterByCondition(patientId, condition);
+        } else if (doctorName != null) {
+            return patientService.filterByDoctor(doctorName, patientId);
+        } else {
+            return patientService.getPatientAppointment(patientId);
+        }
+    }
+}
+
+//public class Service {
 // 1. **@Service Annotation**
 // The @Service annotation marks this class as a service component in Spring. This allows Spring to automatically detect it through component scanning
 // and manage its lifecycle, enabling it to be injected into controllers or other services using @Autowired or constructor injection.
@@ -63,4 +198,4 @@ public class Service {
 // This flexible method supports patient-specific querying and enhances user experience on the client side.
 
 
-}
+//}
