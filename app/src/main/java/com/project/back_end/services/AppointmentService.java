@@ -1,11 +1,10 @@
 package com.project.back_end.services;
 
-package com.hospitalcms.service;
 
 import com.project.back_end.models.Appointment;
 import com.project.back_end.models.Doctor;
 import com.project.back_end.models.Patient;
-import com.hospitalcms.repository.*;
+import com.project.back_end.repo.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
