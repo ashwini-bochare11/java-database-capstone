@@ -1,6 +1,113 @@
 package com.project.back_end.services;
 
+package com.hospitalcms.service;
+
+import com.project.back_end.models.Appointment;
+import com.project.back_end.models.Doctor;
+import com.project.back_end.models.Patient;
+import com.hospitalcms.repository.*;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+@Service  // 1. Marked as a Spring-managed service
 public class AppointmentService {
+
+    private final AppointmentRepository appointmentRepository;
+    private final TokenService tokenService;
+    private final PatientRepository patientRepository;
+    private final DoctorRepository doctorRepository;
+    private final CommonService commonService; // your shared service
+
+    // 2. Constructor injection for all dependencies
+    public AppointmentService(AppointmentRepository appointmentRepository,
+                              TokenService tokenService,
+                              PatientRepository patientRepository,
+                              DoctorRepository doctorRepository,
+                              CommonService commonService) {
+        this.appointmentRepository = appointmentRepository;
+        this.tokenService = tokenService;
+        this.patientRepository = patientRepository;
+        this.doctorRepository = doctorRepository;
+        this.commonService = commonService;
+    }
+
+    // 4. Book a new appointment
+    @Transactional
+    public int bookAppointment(Appointment appointment) {
+        try {
+            appointmentRepository.save(appointment);
+            return 1;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    // 5. Update existing appointment
+    @Transactional
+    public String updateAppointment(Long id, Appointment newData, Long patientId) {
+        Optional<Appointment> optional = appointmentRepository.findById(id);
+        if (optional.isEmpty()) {
+            return "Appointment not found";
+        }
+
+        Appointment existing = optional.get();
+        if (!existing.getPatient().getId().equals(patientId)) {
+            return "Unauthorized update attempt";
+        }
+
+        // check doctor's availability (example logic)
+        List<Appointment> conflicts = appointmentRepository.findByDoctorIdAndAppointmentTimeBetween(
+                newData.getDoctor().getId(),
+                newData.getAppointmentTime().minusMinutes(59),
+                newData.getAppointmentTime().plusMinutes(59)
+        );
+        if (!conflicts.isEmpty()) {
+            return "Doctor is not available at that time.";
+        }
+
+        existing.setAppointmentTime(newData.getAppointmentTime());
+        existing.setStatus(newData.getStatus());
+        appointmentRepository.save(existing);
+        return "Appointment updated successfully";
+    }
+
+    // 6. Cancel appointment
+    @Transactional
+    public String cancelAppointment(Long appointmentId, Long patientId) {
+        Optional<Appointment> optional = appointmentRepository.findById(appointmentId);
+        if (optional.isPresent() && optional.get().getPatient().getId().equals(patientId)) {
+            appointmentRepository.deleteById(appointmentId);
+            return "Appointment canceled";
+        }
+        return "Unauthorized or invalid appointment";
+    }
+
+    // 7. Retrieve appointments by doctor, day, and optionally patient name
+    @Transactional(readOnly = true)
+    public List<Appointment> getAppointments(Long doctorId, LocalDate date, String patientName) {
+        LocalDateTime start = date.atStartOfDay();
+        LocalDateTime end = start.plusDays(1);
+
+        if (patientName == null || patientName.isBlank()) {
+            return appointmentRepository.findByDoctorIdAndAppointmentTimeBetween(doctorId, start, end);
+        }
+        return appointmentRepository.findByDoctorIdAndPatient_NameContainingIgnoreCaseAndAppointmentTimeBetween(
+                doctorId, patientName, start, end
+        );
+    }
+
+    // 8. Change appointment status
+    @Transactional
+    public void changeStatus(long id, int status) {
+        appointmentRepository.updateStatus(status, id);
+    }
+}
+//public class AppointmentService {
 // 1. **Add @Service Annotation**:
 //    - To indicate that this class is a service layer class for handling business logic.
 //    - The `@Service` annotation should be added before the class declaration to mark it as a Spring service component.
@@ -42,4 +149,4 @@ public class AppointmentService {
 //    - Instruction: Add `@Transactional` before this method to ensure atomicity when updating appointment status.
 
 
-}
+//}
